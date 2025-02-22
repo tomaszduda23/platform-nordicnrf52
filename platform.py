@@ -47,7 +47,7 @@ class Nordicnrf52Platform(PlatformBase):
 
             if "zephyr" in frameworks:
                 for p in self.packages:
-                    if p in ("tool-cmake", "tool-dtc", "tool-ninja"):
+                    if p in ("tool-cmake", "tool-ninja"):
                         self.packages[p]["optional"] = False
                 self.packages["toolchain-gccarmnoneeabi"]["version"] = "~1.80201.0"
                 if not IS_WINDOWS:
