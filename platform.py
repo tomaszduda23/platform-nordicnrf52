@@ -50,8 +50,6 @@ class Nordicnrf52Platform(PlatformBase):
                     if p in ("tool-cmake", "tool-ninja"):
                         self.packages[p]["optional"] = False
                 self.packages["toolchain-gccarmnoneeabi"]["version"] = "~1.80201.0"
-                if not IS_WINDOWS:
-                    self.packages["tool-gperf"]["optional"] = False
 
             if board in ("nano33ble", "nicla_sense_me"):
                 self.packages["toolchain-gccarmnoneeabi"]["version"] = "~1.70201.0"
