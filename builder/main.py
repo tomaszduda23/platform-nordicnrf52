@@ -103,21 +103,6 @@ env.Append(
             ]), "Building $TARGET"),
             suffix=".hex"
         ),
-        MergeHex=Builder(
-            action=env.VerboseAction(" ".join([
-                '"%s"' % join(platform.get_package_dir("tool-sreccat") or "",
-                     "srec_cat"),
-                "$SOFTDEVICEHEX",
-                "-intel",
-                "$SOURCES",
-                "-intel",
-                "-o",
-                "$TARGET",
-                "-intel",
-                "--line-length=44"
-            ]), "Building $TARGET"),
-            suffix=".hex"
-        )
     )
 )
 
@@ -146,29 +131,6 @@ if "nrfutil" == upload_protocol or (
                 ]), "Building $TARGET"),
                 suffix=".zip"
             ),
-            SignBin=Builder(
-                action=env.VerboseAction(
-                    " ".join(
-                        [
-                            '"$PYTHONEXE"',
-                            '"%s"' % join(
-                                platform.get_package_dir(
-                                    "framework-arduinoadafruitnrf52"
-                                )
-                                or "",
-                                "tools",
-                                "pynrfbintool",
-                                "pynrfbintool.py",
-                            ),
-                            "--signature",
-                            "$TARGET",
-                            "$SOURCES",
-                        ]
-                    ),
-                    "Signing $SOURCES",
-                ),
-                suffix="_signature.bin",
-            ),
         )
     )
 
@@ -194,11 +156,7 @@ if "nobuild" in COMMAND_LINE_TARGETS:
 else:
     target_elf = env.BuildProgram()
 
-    if "SOFTDEVICEHEX" in env:
-        target_firm = env.MergeHex(
-            join("$BUILD_DIR", "${PROGNAME}"),
-            env.ElfToHex(join("$BUILD_DIR", "userfirmware"), target_elf))
-    elif "nrfutil" == upload_protocol:
+    if "nrfutil" == upload_protocol:
         target_firm = env.PackageDfu(
             join("$BUILD_DIR", "${PROGNAME}"),
             env.ElfToHex(join("$BUILD_DIR", "${PROGNAME}"), target_elf))
@@ -208,58 +166,12 @@ else:
     elif "sam-ba" == upload_protocol:
         target_firm = env.ElfToBin(join("$BUILD_DIR", "${PROGNAME}"), target_elf)
     else:
-        if "DFUBOOTHEX" in env:
-            target_firm = env.SignBin(
-                join("$BUILD_DIR", "${PROGNAME}"),
-                env.ElfToBin(join("$BUILD_DIR", "${PROGNAME}"), target_elf))
-        else:
-            target_firm = env.ElfToHex(
-                join("$BUILD_DIR", "${PROGNAME}"), target_elf)
+        target_firm = env.ElfToHex(
+            join("$BUILD_DIR", "${PROGNAME}"), target_elf)
         env.Depends(target_firm, "checkprogsize")
 
 AlwaysBuild(env.Alias("nobuild", target_firm))
 target_buildprog = env.Alias("buildprog", target_firm, target_firm)
-
-if "DFUBOOTHEX" in env:
-    env.Append(
-        # Check the linker script for the correct location
-        BOOT_SETTING_ADDR=board.get("build.bootloader.settings_addr", "0x7F000")
-    )
-
-    env.AddPlatformTarget(
-        "dfu",
-        env.PackageDfu(
-            join("$BUILD_DIR", "${PROGNAME}"),
-            env.ElfToHex(join("$BUILD_DIR", "${PROGNAME}"), target_elf),
-        ),
-        target_firm,
-        "Generate DFU Image",
-    )
-
-    env.AddPlatformTarget(
-        "bootloader",
-        None,
-        [
-            env.VerboseAction(
-                "nrfjprog --program $DFUBOOTHEX -f nrf52 --chiperase",
-                "Uploading $DFUBOOTHEX",
-            ),
-            env.VerboseAction(
-                "nrfjprog --erasepage $BOOT_SETTING_ADDR -f nrf52",
-                "Erasing bootloader config",
-            ),
-            env.VerboseAction(
-                "nrfjprog --memwr $BOOT_SETTING_ADDR --val 0x00000001 -f nrf52",
-                "Disable CRC check",
-            ),
-            env.VerboseAction("nrfjprog --reset -f nrf52", "Reset nRF52"),
-        ],
-        "Burn Bootloader",
-    )
-
-if "bootloader" in COMMAND_LINE_TARGETS and "DFUBOOTHEX" not in env:
-    sys.stderr.write("Error. The board is missing the bootloader binary.\n")
-    env.Exit(1)
 
 #
 # Target: Print binary size
@@ -311,7 +223,7 @@ elif upload_protocol == "nrfjprog":
     env.Replace(
         UPLOADER="nrfjprog",
         UPLOADERFLAGS=[
-            "--sectorerase" if "DFUBOOTHEX" in env else "--chiperase",
+            "--chiperase",
             "--reset"
         ],
         UPLOADCMD="$UPLOADER $UPLOADERFLAGS --program $SOURCE"
@@ -362,13 +274,8 @@ elif upload_protocol.startswith("jlink"):
             makedirs(build_dir)
         script_path = join(build_dir, "upload.jlink")
         commands = ["h"]
-        if "DFUBOOTHEX" in env:
-            commands.append("loadbin %s,%s" % (str(source).replace("_signature", ""),
-                env.BoardConfig().get("upload.offset_address", "0x26000")))
-            commands.append("loadbin %s,%s" % (source, env.get("BOOT_SETTING_ADDR")))
-        else:
-            commands.append("loadbin %s,%s" % (source, env.BoardConfig().get(
-                "upload.offset_address", "0x0")))
+        commands.append("loadbin %s,%s" % (source, env.BoardConfig().get(
+            "upload.offset_address", "0x0")))
 
         commands.append("r")
         commands.append("q")
