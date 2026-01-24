@@ -39,24 +39,12 @@ class Nordicnrf52Platform(PlatformBase):
                                             "nrf5") == "adafruit":
                 self.frameworks["arduino"][
                     "package"] = "framework-arduinoadafruitnrf52"
-                self.packages["framework-cmsis"]["optional"] = False
                 self.packages["tool-adafruit-nrfutil"]["optional"] = False
-
-            if "mbed" in frameworks:
-                self.packages["toolchain-gccarmnoneeabi"]["version"] = "~1.90201.0"
 
             if "zephyr" in frameworks:
                 for p in self.packages:
                     if p in ("tool-cmake", "tool-ninja"):
                         self.packages[p]["optional"] = False
-                self.packages["toolchain-gccarmnoneeabi"]["version"] = "~1.80201.0"
-
-            if board in ("nano33ble", "nicla_sense_me"):
-                self.packages["toolchain-gccarmnoneeabi"]["version"] = "~1.70201.0"
-                self.frameworks["arduino"]["package"] = "framework-arduino-mbed"
-                self.frameworks["arduino"][
-                    "script"
-                ] = "builder/frameworks/arduino/mbed-core/arduino-core-mbed.py"
 
         if set(["bootloader", "erase"]) & set(targets):
             self.packages["tool-nrfjprog"]["optional"] = False
