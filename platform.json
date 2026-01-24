@@ -42,6 +42,10 @@
       "optional": true,
       "version": "~1.503.0"
     },
+    "tool-sreccat": {
+      "owner": "platformio",
+      "version": "~1.164.0"
+    },
     "tool-nrfjprog": {
       "type": "uploader",
       "optional": true,
